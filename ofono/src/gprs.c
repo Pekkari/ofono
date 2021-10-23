@@ -153,6 +153,8 @@ static void gprs_netreg_update(struct ofono_gprs *gprs);
 static void gprs_deactivate_next(struct ofono_gprs *gprs);
 static void write_context_settings(struct ofono_gprs *gprs,
 						struct pri_context *context);
+static gboolean load_context(struct ofono_gprs *gprs,
+						const char *group);
 
 static GSList *g_drivers = NULL;
 static GSList *g_context_drivers = NULL;
@@ -571,6 +573,22 @@ static void context_settings_append_ipv6_dict(struct context_settings *settings,
 	context_settings_append_ipv6(settings, &entry);
 
 	dbus_message_iter_close_container(dict, &entry);
+}
+
+gboolean ofono_gprs_context_settings_mms_is_combined_apn
+	(struct ofono_gprs *gprs, enum ofono_gprs_context_type type)
+{
+    GSList *l;
+    struct pri_context *ctx;
+	for (l = gprs->contexts; l; l = l->next) {
+		ctx = l->data;
+		if (ctx->type != OFONO_GPRS_CONTEXT_TYPE_INTERNET)
+			continue;
+		if (!g_str_equal(ctx->message_center, "") || !g_str_equal(ctx->message_proxy, ""))
+			return TRUE;
+	}
+
+    return FALSE;
 }
 
 static void signal_settings(struct pri_context *ctx, const char *prop,
@@ -3366,6 +3384,8 @@ void ofono_gprs_context_remove(struct ofono_gprs_context *gc)
 
 void ofono_gprs_context_set_data(struct ofono_gprs_context *gc, void *data)
 {
+	if (gc == NULL || data == NULL)
+		return;
 	gc->driver_data = data;
 }
 
